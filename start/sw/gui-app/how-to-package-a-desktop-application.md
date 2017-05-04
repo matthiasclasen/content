@@ -129,8 +129,7 @@ A typical (albeit somewhat truncated) AppData file is shown below:
 
 ####Some Appstream background
 
-The AppStream specification is an mature and evolving standard that allows upstream applications to provide metadata such as localized descriptions, screenshots, extra keywords and content ratings for parental control. The basic concept is that the upstream project ships one extra AppData XML file which is used to build a global application catalog called an AppStream file. Over 1000 open source projects now include AppData files, and the software center shipped in Fedora, Ubuntu and OpenSuse is now an easy to use application filled with useful application metadata. Applications without AppData files are no longer shown which provides quite some incentive to upstream projects wanting visibility in popular desktop environments.
-
+The AppStream specification is a mature and evolving standard that allows upstream applications to provide metadata such as localized descriptions, screenshots, extra keywords and content ratings for parental control. The basic concept is that the upstream project ships one extra AppData XML file which is used to build a global application catalog called an AppStream file. Over 1000 open source projects now include AppData files, and the software center shipped in Fedora, Ubuntu and OpenSuse is an easy-to-use application filled with useful application metadata. Applications without AppData files are no longer shown which provides quite some incentive to upstream projects wanting visibility in popular desktop environments.
 
 AppStream[[2](https://www.freedesktop.org/software/appstream/docs/) ] was first introduced in 2008 and since then many people have contributed to the specification. It is being used primarily for application metadata but also now is used for drivers, firmware, input methods and fonts. There are multiple projects producing AppStream metadata and also a number of projects consuming the final XML metadata.
 
@@ -141,16 +140,16 @@ If the application is being built on your own machines or cloud instance then th
 NOTE: If you are building packages, make sure that there are not two applications installed with one single package. If this is currently the case split up the package so that there are multiple subpackages or mark one of the .desktop files as NoDisplay=true. Make sure the application-subpackages depend on any -common subpackage and deal with upgrades (perhaps using a metapackage) if you’ve shipped the application before.
 
 ###Summary of Package building
-So the steps outlined above explains the extra metadata you need to have your application show up in GNOME Software. This tutorial does not cover how to set up your build system to build these, but both for  Meson and autotools you should be able to find a long range of examples online. 
+The steps outlined above explain the extra metadata that you need for your application to show up in GNOME Software. This tutorial does not cover how to set up your build system to build these, but both for  Meson and autotools you should be able to find a plethora of examples online. 
 And there are also major resources available to explain how to create a [Fedora RPM](https://fedoraproject.org/wiki/How_to_create_an_RPM_package) or [how to build a Flatpak](http://docs.flatpak.org/en/latest/). You probably also want to tie both the Desktop file and the AppData file into your i18n system so the metadata in them can be translated.
 
-It is worth nothing here that while this document explains how you can do everything yourself we do generally recommend relying on existing community infrastructure for hosting source code and packages if you can (for instance if your application is open source), as they will save you work and effort over time. For instance putting your sourcecode into the GNOME git will give you free access to the translator community in GNOME and thus increase the chance your application is internationalized significantly. And by building your package in Fedora you can get peer review of your package and free hosting of the resulting package. We are also working on a service that will automatically generate a Flatpack bundle of your application in Fedora, meaning you get a Flatpak version of your application for free as a result.
+It is worth nothing here that while this document explains how you can do everything yourself, we do generally recommend relying on existing community infrastructure for hosting source code and packages if you can (for instance if your application is open source), as they will save you work and effort over time. For instance putting your source code on GNOME's git will make it easy for the GNOME translation teams to work on your application and thus increase the chance that it gets translated in many languages. And by building your package in Fedora you can get peer review of your package and free hosting of the resulting package. We are also working on a service that will automatically generate a Flatpack bundle of your application in Fedora, meaning you get a Flatpak version of your application with no extra effort.
 
 ##Setting up hosting infrastructure for your package
 We will here explain how you set up a Yum repository for RPM packages that provides the needed metadata. If you are making a Flatpak we recommend skipping ahead to the Flatpak section a bit further down.
 
-###Yum hosting and Metadata:
-When GNOME Software checks for updates it downloads various metadata files from the server describing the packages available in the repository. GNOME Software can also download AppStream metadata at the same time, allowing add-on repositories to include applications that are visible in the the software center.
+###Yum hosting and metadata
+When GNOME Software checks for updates it downloads various metadata files from the server describing the packages available in the repository. GNOME Software can also download AppStream metadata at the same time, allowing add-on repositories to include applications that are visible in the software center.
 
 In most cases distributors are already building binary RPMS and then building metadata as an additional step by running something like this to generate the repomd files on a directory of packages. The tool for creating the repository metadata is called createrepo_c and is part of the package createrepo_c in Fedora. You can install it by running the command:
 
@@ -161,8 +160,9 @@ Once the tool is installed you can run these commands to generate your metadata:
 	$ createrepo_c --no-database --simple-md-filenames SRPMS/
 	$ createrepo_c --no-database --simple-md-filenames x86_64/
 		
-This creates the primary and filelist metadata required for updating on the command line. Next to build the metadata required for the software center we we need to actually generate the AppStream XML. The tool you need for this is called appstream-builder. This works by decompressing .rpm files and merging together the .desktop file, the .appdata.xml file and preprocessing the icons. Remember, only applications installing AppData files will be included in the metadata.
-You can install appstream builder in Fedora Workstation by using this command:
+This creates the primary and filelist metadata required for updating on the command line. Next to build the metadata required for the software center we we need to actually generate the AppStream XML. The tool you need for this is called appstream-builder. This works by decompressing .rpm files and merging together the .desktop file, the .appdata.xml file and preprocessing icons and screenshots. Remember, only applications installing AppData files will be included in the metadata.
+
+You can install appstream-builder in Fedora Workstation by using this command:
 
 	dnf install libappstream-glib-builder
 
@@ -236,7 +236,52 @@ Once you have that file completed put it into /etc/yum.repos.d on your computer 
 
 
 ###Flapak hosting and Metadata
-The flatpak-builder binary generates AppStream metadata automatically when building applications if the appstream-compose tool is installed on the flatpak build machine. Flatpak[5] remotes are exported with a separate ‘appstream’ branch which is automatically downloaded by GNOME Software and no addition work if required when building your application or updating the remote. Adding the remote is enough to add the application to the software center, on the assumption the AppData file is valid.
+The flatpak-builder binary generates AppStream metadata automatically when building applications if the appstream-compose tool is installed on the flatpak build machine. Flatpak[5] repositories are exported with a separate ‘appstream’ branch which is automatically downloaded by GNOME Software and no additional work is required when building your application or updating the remote. Adding the remote is enough to add the application to the software center, on the assumption the AppData file is valid.
+
+Extensive information on building flatpaks and on hosting and signing flatpak repostories can be found elsewhere[7].
+In summary, to create an empty repository, you use:
+
+        ostree init --mode=archive-z2 --repo=repo
+
+To tell flatpak-builder to import the end result of a build into this repository, you pass --repo=repo:
+        
+        flatpak-builder --verbose --force-clean \
+                                --repo=repo \
+                                --gpg-homedir=gpg --gpg-sign=$GPG_KEY \
+                                recipes flatpak/org.gnome.Recipes.json
+
+To generate appstream branches and static deltas in this repository, you use:
+
+        flatpak build-update-repo --generate-static-deltas --gpg-homedir=gpg --gpg-sign=$GPG_KEY repo
+
+Note that both of these commands take a --gpg-sign argument. Flatpak uses GPG as a means to ensure that the repository
+can be trusted, so you should sign your public repositories.
+
+The best way to make your application and its Flatpak repository available to users is to publish a flatpakref file for it:
+	
+	[Flatpak Ref]
+	Title=GNOME Recipes
+	Name=org.gnome.Recipes
+	Url=https://raw.githubusercontent.com/matthiasclasen/recipes-releases/master/repo/
+	Branch=1.0
+	IsRuntime=False
+	GPGKey=...
+	RuntimeRepo=https://sdk.gnome.org/gnome.flatpakrepo
+	Comment=GNOME loves to cook
+
+### Hosting a Flatpak repository on Github
+Github isn't really set up for hosting Flatpak repositories, so we can't guarantee that this will keep working in the future. So once you created a local copy of your repository create a new project on github, enable github pages for the project and point it at the master branch.
+Then use the follow commands to import your repository into github.
+
+	cd ~/src/myrepository
+	git init
+	git add -A
+	git commit -a -m "first commit"
+	git remote add origin git@github.com:yourgitaccount/myrepo.git
+	git push -u origin master
+
+Now you should be able to refer to your repo with a raw.githubusercontent.com/ URL like the one shown in the flatpakrepo
+example above.
 
 ###Getting it into Fedora Workstation
 You now have your repository created and ready for users to connect to it. The final step is getting your repository added to Fedora Workstation.
@@ -259,4 +304,4 @@ Much gratitude has to go to Red Hat for funding my work on this for the last few
 4. [Filesystem Hierarchy Standard: 17th October 2016](https://en.wikipedia.org/wiki/Filesystem_Hierarchy_Standard) 
 5. [Flatpak Homepage: 17th October 2016](http://flatpak.org/)
 6. [SPDX license list](https://spdx.org/licenses/)
-
+7. [Maintaining a Flatpak repository](https://blogs.gnome.org/alexl/2017/02/10/maintaining-a-flatpak-repository/)
