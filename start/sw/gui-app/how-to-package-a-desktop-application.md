@@ -43,6 +43,7 @@ The desktop file should be installed into /usr/share/applications for applicatio
 	MimeType=application/x-openscad;
 	Categories=Graphics;3DGraphics;Engineering;
 	Keywords=3d;solid;geometry;csg;model;stl;
+	Keywords[de]=3D;solid;Geometrie;csg;Modell;stl;
 
 *Text 1:  example desktop file for the OpenScad project*
 
